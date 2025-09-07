@@ -1,0 +1,377 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+
+.app-root-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.navbar {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  background: #f3f3f3;
+  padding: 1.2rem 2rem;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+.navbar a {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+  padding: 0.2rem 0.7rem;
+  border-radius: 4px;
+}
+.navbar a:hover {
+  color: #1565c0;
+  background: #e3f2fd;
+}
+
+.auth-container {
+  max-width: 350px;
+  margin: 60px 60px 0 auto;
+  padding: 2rem 2.5rem 2rem 2.5rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  text-align: left;
+}
+
+.auth-container h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.auth-container form > div {
+  margin-bottom: 1.2rem;
+}
+
+.auth-container label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #555;
+}
+
+.auth-container input,
+.auth-container select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.auth-container .error {
+  color: #d32f2f;
+  margin-bottom: 1rem;
+}
+
+.auth-container .success {
+  color: #388e3c;
+  margin-bottom: 1rem;
+}
+
+.auth-container button {
+  width: 100%;
+  padding: 0.7rem;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+
+.auth-container button:hover {
+  background: #1565c0;
+}
+
+.auth-container a {
+  display: block;
+  margin-top: 1rem;
+  color: #1976d2;
+  text-align: right;
+  text-decoration: none;
+}
+
+h2 {
+  color: #1976d2;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+thead {
+  background: #1976d2;
+  color: #fff;
+}
+
+td, th {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+button {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #1565c0;
+}
+
+/* --- Transaction Page Styles --- */
+.transaction-page-container {
+  max-width: 700px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 2rem 2.5rem;
+}
+
+.transaction-header {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #222;
+}
+
+.card-form {
+  margin-bottom: 2rem;
+  background: #f7f7f7;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  padding: 1.5rem 2rem;
+}
+
+.transaction-horizontal-form .form-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.transaction-horizontal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  margin-bottom: 0.5rem;
+}
+
+.transaction-horizontal-form .form-input {
+  padding: 0.6rem 1rem;
+  border-radius: 5px;
+  border: 1px solid #bdbdbd;
+  margin-top: 0.3rem;
+  font-size: 1.05rem;
+  background: #fff;
+}
+
+.form-actions {
+  margin-top: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.save-btn {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.7rem 1.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.save-btn:hover {
+  background: #1565c0;
+}
+
+.form-error {
+  color: #d32f2f;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 1.5rem;
+  background: #fafafa;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.transaction-table th {
+  background: #f5f5f5;
+  color: #222;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.8rem;
+  text-align: left;
+}
+.transaction-table td {
+  padding: 0.7rem 0.8rem;
+  font-size: 1.05rem;
+  border-bottom: 1px solid #eee;
+}
+.transaction-table tr:last-child td {
+  border-bottom: none;
+}
+.edit-btn, .delete-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+.edit-btn {
+  background: #fffde7;
+  color: #fbc02d;
+  border: 1px solid #fbc02d;
+}
+.edit-btn:hover {
+  background: #fff9c4;
+}
+.delete-btn {
+  background: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+.delete-btn:hover {
+  background: #ffcdd2;
+}
+
+.transaction-summary-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 0.7rem 1.2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  gap: 2rem;
+}
+.transaction-summary-row label {
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+.transaction-summary-row select {
+  padding: 0.4rem 0.7rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.transaction-total {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #388e3c;
+}
+
+.form-row-horizontal {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+.form-actions-horizontal {
+  display: flex;
+  align-items: flex-end;
+}
+.green-btn {
+  background: #43a047;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.7rem 1.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.green-btn:hover {
+  background: #388e3c;
+}
+
+@media (max-width: 900px) {
+  .transaction-page-container {
+    padding: 1rem 0.5rem;
+    max-width: 100%;
+  }
+  .app-root-container {
+    padding: 0 0.2rem;
+  }
+}
+@media (max-width: 700px) {
+  .navbar {
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.7rem 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  .transaction-page-container {
+    padding: 0.5rem 0.2rem;
+  }
+  .card-form {
+    padding: 1rem 0.5rem;
+  }
+  .transaction-horizontal-form .form-row {
+    gap: 0.7rem;
+  }
+  .transaction-horizontal-form .form-group {
+    min-width: 120px;
+  }
+  .transaction-table th, .transaction-table td {
+    font-size: 0.95rem;
+    padding: 0.5rem;
+  }
+  .transaction-summary-row {
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: flex-end;
+    padding: 0.5rem 0.5rem;
+  }
+  .form-row-horizontal {
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: stretch;
+  }
+}
