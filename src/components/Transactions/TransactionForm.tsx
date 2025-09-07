@@ -29,6 +29,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -67,19 +68,43 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const payload = {
-        description,
-        amount,
-        date,
-        type,
-        categoryId: categoryId === '' ? undefined : categoryId,
-      };
       if (transaction) {
-        await axios.put(`/api/Transaction/${transaction.transactionId}`, { ...payload, transactionId: transaction.transactionId }, {
+        // Update (with file upload)
+        const formData = new FormData();
+        formData.append('description', description);
+        formData.append('amount', String(amount));
+        formData.append('date', date);
+        formData.append('type', type);
+        if (categoryId !== '') formData.append('categoryId', String(categoryId));
+        formData.append('transactionId', String(transaction.transactionId));
+        // Get userId from JWT
+        let userId = '';
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          userId = payload.sub;
+        }
+        formData.append('userId', userId);
+        if (file) formData.append('file', file);
+        await axios.put(`/api/Transaction/${transaction.transactionId}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        await axios.post('/api/Transaction', payload, {
+        // Create (with file upload)
+        const formData = new FormData();
+        formData.append('description', description);
+        formData.append('amount', String(amount));
+        formData.append('date', date);
+        formData.append('type', type);
+        if (categoryId !== '') formData.append('categoryId', String(categoryId));
+        // Get userId from JWT
+        let userId = '';
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          userId = payload.sub;
+        }
+        formData.append('userId', userId);
+        if (file) formData.append('file', file);
+        await axios.post('/api/Transaction', formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
@@ -89,6 +114,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
       setDate('');
       setType('Debit');
       setCategoryId('');
+      setFile(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save transaction');
     } finally {
@@ -153,6 +179,24 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
               <MenuItem value="Credit">Credit</MenuItem>
             </Select>
           </FormControl>
+          <Button
+            component="label"
+            variant="outlined"
+            color="primary"
+            size="medium"
+            sx={{ minWidth: 120, maxWidth: 200 }}
+          >
+            {file ? file.name : 'Upload File'}
+            <input
+              type="file"
+              hidden
+              onChange={e => {
+                if (e.target.files && e.target.files[0]) {
+                  setFile(e.target.files[0]);
+                }
+              }}
+            />
+          </Button>
           <Button
             type="submit"
             variant="contained"

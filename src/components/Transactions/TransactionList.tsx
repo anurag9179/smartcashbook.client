@@ -11,6 +11,7 @@ interface Transaction {
   type: 'Credit' | 'Debit';
   categoryId?: number;
   categoryName?: string;
+  filePath?: string;
 }
 
 interface Category {
@@ -100,6 +101,7 @@ const TransactionList: React.FC = () => {
               <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>File</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
             </TableRow>
           </TableHead>
@@ -110,6 +112,20 @@ const TransactionList: React.FC = () => {
                 <TableCell>${Number(tx.amount).toFixed(2)}</TableCell>
                 <TableCell>{categories.find(cat => cat.categoryId === tx.categoryId)?.name || '-'}</TableCell>
                 <TableCell>{tx.date}</TableCell>
+                <TableCell>
+                  {tx.filePath ? (
+                    <a
+                      href={`http://localhost:5000/api/Transaction/download/${tx.transactionId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                    >
+                      Download
+                    </a>
+                  ) : (
+                    <span style={{ color: '#aaa' }}>No file</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Button variant="outlined" color="primary" size="small" sx={{ mr: 1 }} onClick={() => setEditTransaction(tx)}>Edit</Button>
                   <Button variant="outlined" color="error" size="small" onClick={() => handleDelete(tx.transactionId)}>Delete</Button>

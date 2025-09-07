@@ -5,6 +5,7 @@ import TransactionList from './components/Transactions/TransactionList';
 import UserList from './components/Users/UserList';
 import Login from './components/AuthX/Login';
 import { AppBar, Toolbar, Button, Box, Typography } from '@mui/material';
+import UserProfile from './components/Users/UserProfile';
 
 function RequireAuth({ children }) {
   const token = localStorage.getItem('token');
@@ -17,6 +18,30 @@ function RequireAuth({ children }) {
 function AppContent() {
   const location = useLocation();
   const hideAppBar = location.pathname === '/login' || location.pathname === '/logout';
+  // Check for Admin role in JWT
+  const token = localStorage.getItem('token');
+  let isAdmin = false;
+  try {
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      isAdmin = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] === 'Admin';
+    }
+  } catch {}
+
+  const [profileOpen, setProfileOpen] = React.useState(false);
+  // Get user info from JWT
+  let userProfile = null;
+  try {
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      userProfile = {
+        userName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || '',
+        email: payload.email || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
+        roleName: payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || '',
+      };
+    }
+  } catch {}
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       {!hideAppBar && (
@@ -31,14 +56,43 @@ function AppContent() {
             <Button component={Link} to="/transactions" color="primary" sx={{ textTransform: 'none', fontWeight: 500 }}>
               Transactions
             </Button>
-            <Button component={Link} to="/users" color="primary" sx={{ textTransform: 'none', fontWeight: 500 }}>
-              Users
-            </Button>
-            <Button component={Link} to="/logout" color="primary" sx={{ textTransform: 'none', fontWeight: 500 }}>
-              Logout
-            </Button>
+            {isAdmin && (
+              <Button component={Link} to="/users" color="primary" sx={{ textTransform: 'none', fontWeight: 500 }}>
+                Users
+              </Button>
+            )}
+            {/* Profile Icon */}
+            {userProfile && (
+              <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button onClick={() => setProfileOpen(true)} sx={{ minWidth: 0, p: 0 }}>
+                  <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#1976d2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18 }}>
+                    {userProfile.userName.charAt(0).toUpperCase()}
+                  </Box>
+                </Button>
+              </Box>
+            )}
           </Toolbar>
         </AppBar>
+      )}
+      {/* Profile Modal/Popup */}
+      {profileOpen && (
+        <Box sx={{ position: 'fixed', top: 70, right: 30, zIndex: 1300 }}>
+          <Box sx={{ position: 'relative' }}>
+            <Button onClick={() => setProfileOpen(false)} sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>X</Button>
+            <UserProfile user={userProfile} />
+            <Button
+              onClick={() => {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+              }}
+              variant="contained"
+              color="error"
+              sx={{ mt: 2, width: '100%' }}
+            >
+              Logout
+            </Button>
+          </Box>
+        </Box>
       )}
       <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2 }}>
         <Routes>
@@ -53,7 +107,6 @@ function AppContent() {
     </Box>
   );
 }
-
 function Logout() {
   React.useEffect(() => {
     localStorage.removeItem('token');
