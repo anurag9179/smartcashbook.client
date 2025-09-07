@@ -1,10 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Link, useLocation, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard/Dashboard';
 import TransactionList from './components/Transactions/TransactionList';
 import UserList from './components/Users/UserList';
 import Login from './components/AuthX/Login';
 import { AppBar, Toolbar, Button, Box, Typography } from '@mui/material';
+
+function RequireAuth({ children }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -34,16 +42,24 @@ function AppContent() {
       )}
       <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2 }}>
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/transactions" element={<TransactionList />} />
-          <Route path="/users" element={<UserList />} />
+          <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/transactions" element={<RequireAuth><TransactionList /></RequireAuth>} />
+          <Route path="/users" element={<RequireAuth><UserList /></RequireAuth>} />
           <Route path="/login" element={<Login />} />
-          <Route path="/logout" element={<Login />} />
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/logout" element={<Logout />} />
+          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
         </Routes>
       </Box>
     </Box>
   );
+}
+
+function Logout() {
+  React.useEffect(() => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  }, []);
+  return null;
 }
 
 function App() {
