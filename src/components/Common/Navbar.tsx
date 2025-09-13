@@ -13,11 +13,11 @@ import {
   Divider,
   ListItemIcon,
   ListItemText,
-  Badge,
-  Switch,
   FormControlLabel,
   Chip,
-  Tooltip
+  Tooltip,
+  Badge,
+  Switch
 } from '@mui/material';
 import {
   AccountBalanceWallet,
@@ -37,45 +37,23 @@ import {
   AdminPanelSettings
 } from '@mui/icons-material';
 import { ThemeContext } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { userPermissions } from '../../utils/jwtUtils';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [user, setUser] = useState({
-    name: '',
-    email: '',
-    role: '',
-    avatar: null as string | null
-  });
   const [notifications] = useState(3); // Mock notification count
   const open = Boolean(anchorEl);
 
   // Get theme context
   const { darkMode, toggleTheme } = useContext(ThemeContext);
+  // Get auth context
+  const { user, logout } = useAuth();
 
   // Get user data from JWT token
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({
-          name: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || 'User',
-          email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
-          role: payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'User',
-          avatar: null // Could be added later with profile picture
-        });
-      } catch (error) {
-        console.error('Error parsing token:', error);
-        // Fallback to default user
-        setUser({
-          name: 'User',
-          email: '',
-          role: 'User',
-          avatar: null
-        });
-      }
-    }
+    // User data is now managed by AuthContext
   }, []);
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -87,8 +65,7 @@ const Navbar: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    logout();
     handleProfileMenuClose();
   };
 
@@ -217,7 +194,7 @@ const Navbar: React.FC = () => {
             Transactions
           </Button>
 
-          {user.role === 'Admin' && (
+          {userPermissions.canManageUsers(user?.role) && (
             <Button
               component={Link}
               to="/users"
@@ -305,9 +282,9 @@ const Navbar: React.FC = () => {
                 lineHeight: 1.2
               }}
             >
-              {user.name}
+              {user?.username || 'User'}
             </Typography>
-            {user.role === 'Admin' && (
+            {userPermissions.isAdmin(user?.role) && (
               <Chip
                 label="Admin"
                 size="small"
@@ -341,15 +318,14 @@ const Navbar: React.FC = () => {
                 sx={{
                   width: 32,
                   height: 32,
-                  bgcolor: user.avatar ? 'transparent' : 'primary.main',
+                  bgcolor: 'primary.main',
                   fontSize: '13px',
                   fontWeight: 500,
-                  border: user.role === 'Admin' ? '2px solid' : 'none',
-                  borderColor: user.role === 'Admin' ? 'error.main' : 'transparent'
+                  border: user?.role === 'Admin' ? '2px solid' : 'none',
+                  borderColor: user?.role === 'Admin' ? 'error.main' : 'transparent'
                 }}
-                src={user.avatar || undefined}
               >
-                {!user.avatar && getInitials(user.name)}
+                {getInitials(user?.username || 'User')}
               </Avatar>
             </IconButton>
           </Tooltip>
@@ -382,13 +358,12 @@ const Navbar: React.FC = () => {
                 sx={{
                   width: 48,
                   height: 48,
-                  bgcolor: user.avatar ? 'transparent' : 'primary.main',
+                  bgcolor: 'primary.main',
                   fontSize: '18px',
                   fontWeight: 500
                 }}
-                src={user.avatar || undefined}
               >
-                {!user.avatar && getInitials(user.name)}
+                {getInitials(user?.username || 'User')}
               </Avatar>
               <Box sx={{ flex: 1 }}>
                 <Typography
@@ -400,7 +375,7 @@ const Navbar: React.FC = () => {
                     lineHeight: 1.2
                   }}
                 >
-                  {user.name}
+                  {user?.username || 'User'}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -409,11 +384,11 @@ const Navbar: React.FC = () => {
                     fontSize: '14px'
                   }}
                 >
-                  {user.email}
+                  {user?.email || ''}
                 </Typography>
-                {user.role && (
+                {user?.role && (
                   <Chip
-                    label={user.role}
+                    label={userPermissions.getRoleDisplayName(user.role)}
                     size="small"
                     sx={{
                       mt: 0.5,

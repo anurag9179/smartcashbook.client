@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Paper, Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, TextField, MenuItem } from '@mui/material';
+import { Paper, Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, TextField, MenuItem, Alert } from '@mui/material';
+import { useAuth } from '../../contexts/AuthContext';
+import { userPermissions } from '../../utils/jwtUtils';
 
 interface User {
   userId: number;
@@ -23,6 +25,10 @@ const UserList: React.FC = () => {
   const [form, setForm] = useState({ userName: '', email: '', roleId: '', password: '' });
   const [isEdit, setIsEdit] = useState(false);
   const [loadingForm, setLoadingForm] = useState(false);
+
+  // Get auth context and permissions
+  const { user } = useAuth();
+  const canManageUsers = userPermissions.canManageUsers(user?.role);
 
   // Ensure form is always empty and in 'Add' mode on initial load
   useEffect(() => {
@@ -142,23 +148,14 @@ const UserList: React.FC = () => {
   if (loading) return <Typography sx={{ mt: 3 }}>Loading users...</Typography>;
   if (error) return <Typography color="error" sx={{ mt: 3 }}>{error}</Typography>;
 
-  // Only allow access for Admin role
-  const token = localStorage.getItem('token');
-  let isAdmin = false;
-  try {
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      isAdmin = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] === 'Admin';
-    }
-  } catch {}
-
-  if (!isAdmin) {
+  // Check if user can manage users (Admin only)
+  if (!canManageUsers) {
     return (
       <Box sx={{ maxWidth: 600, mx: 'auto', mt: 8, textAlign: 'center' }}>
-        <Typography variant="h5" color="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           Access Denied
-        </Typography>
-        <Typography>You do not have permission to view this page.</Typography>
+        </Alert>
+        <Typography>You do not have permission to view this page. Only administrators can manage users.</Typography>
       </Box>
     );
   }

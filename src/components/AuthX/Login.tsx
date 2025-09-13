@@ -19,6 +19,7 @@ import {
   VisibilityOff,
   AccountBalanceWallet
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
@@ -27,53 +28,22 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
-      console.log('Attempting login with:', { identifier, password: '***' });
+    const result = await login(identifier, password);
 
-      const response = await axios.post('/api/Auth/login', {
-        identifier,
-        password
-      });
-
-      console.log('Login response:', response.data);
-
-      if (response.data && (response.data as any).token) {
-        localStorage.setItem('token', (response.data as any).token);
-        console.log('Token stored, navigating to dashboard...');
-        navigate('/dashboard');
-      } else {
-        setError('Invalid response from server');
-      }
-    } catch (err: any) {
-      console.error('Login error:', err);
-
-      if (err.response) {
-        // Server responded with error
-        if (err.response.status === 401) {
-          setError('Invalid username/email or password');
-        } else if (err.response.status === 400) {
-          setError('Please check your input and try again');
-        } else if (err.response.data?.message) {
-          setError(err.response.data.message);
-        } else {
-          setError('Login failed. Please try again.');
-        }
-      } else if (err.request) {
-        // Network error
-        setError('Unable to connect to server. Please check your connection.');
-      } else {
-        // Other error
-        setError('An unexpected error occurred. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error);
     }
+
+    setLoading(false);
   };
 
   const handleClickShowPassword = () => {

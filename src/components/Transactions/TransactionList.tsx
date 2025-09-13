@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import TransactionForm from './TransactionForm';
-import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Box, Typography, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Box, Typography, Button, Select, MenuItem, FormControl, InputLabel, Alert } from '@mui/material';
 import { ThemeContext } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { userPermissions } from '../../utils/jwtUtils';
 
 interface Transaction {
   transactionId: number;
@@ -30,6 +32,14 @@ const TransactionList: React.FC = () => {
 
   // Get theme context
   const { darkMode } = React.useContext(ThemeContext);
+  
+  // Get auth context
+  const { user } = useAuth();
+  
+  // Check user permissions
+  const canWriteTransactions = userPermissions.canWrite(user?.role);
+  const canDeleteTransactions = userPermissions.canDelete(user?.role);
+  const isObserver = userPermissions.isObserver(user?.role);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -145,13 +155,31 @@ const TransactionList: React.FC = () => {
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 700, color: 'primary.main', textAlign: 'left' }}>
         Expense Tracker
       </Typography>
-      <TransactionForm
-        transaction={editTransaction || undefined}
-        onSuccess={() => {
-          setEditTransaction(null);
-          fetchTransactions();
-        }}
-      />
+      
+      {/* Show read-only message for Observer users */}
+      {isObserver && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          You have read-only access. You can view transactions but cannot create, edit, or delete them.
+        </Alert>
+      )}
+      
+      {/* Only show form for users who can write */}
+      {canWriteTransactions && (
+        <TransactionForm
+          transaction={editTransaction || undefined}
+          onSuccess={() => {
+            setEditTransaction(null);
+            fetchTransactions();
+          }}
+        />
+      )}
+      
+      {/* Show message when user cannot write but can read */}
+      {!canWriteTransactions && !isObserver && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to create or modify transactions.
+        </Alert>
+      )}
       <Paper elevation={2} sx={{ mb: 3, backgroundColor: 'background.paper' }}>
         <Table>
           <TableHead>
@@ -162,7 +190,10 @@ const TransactionList: React.FC = () => {
               <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Date</TableCell>
               <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Download</TableCell>
               <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Preview</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Action</TableCell>
+              {/* Only show Actions column if user can perform actions */}
+              {(canWriteTransactions || canDeleteTransactions) && (
+                <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Action</TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -200,10 +231,17 @@ const TransactionList: React.FC = () => {
                     <span style={{ color: '#aaa' }}>No file</span>
                   )}
                 </TableCell>
-                <TableCell sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
-                  <Button variant="outlined" color="primary" size="small" sx={{ mr: 1 }} onClick={() => setEditTransaction(tx)}>Edit</Button>
-                  <Button variant="outlined" color="error" size="small" onClick={() => handleDelete(tx.transactionId)}>Delete</Button>
-                </TableCell>
+                {/* Only show action buttons if user has permissions */}
+                {(canWriteTransactions || canDeleteTransactions) && (
+                  <TableCell sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                    {canWriteTransactions && (
+                      <Button variant="outlined" color="primary" size="small" sx={{ mr: 1 }} onClick={() => setEditTransaction(tx)}>Edit</Button>
+                    )}
+                    {canDeleteTransactions && (
+                      <Button variant="outlined" color="error" size="small" onClick={() => handleDelete(tx.transactionId)}>Delete</Button>
+                    )}
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

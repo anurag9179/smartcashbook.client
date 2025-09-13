@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Dashboard from './components/Dashboard/Dashboard';
 import TransactionList from './components/Transactions/TransactionList';
 import UserList from './components/Users/UserList';
@@ -8,32 +9,20 @@ import Register from './components/AuthX/Register';
 import ForgotPassword from './components/AuthX/ForgotPassword';
 import ResetPassword from './components/AuthX/ResetPassword';
 import Navbar from './components/Common/Navbar';
+import TokenExpirationModal from './components/Common/TokenExpirationModal';
 
 function RequireAuth({ children }) {
-  const token = localStorage.getItem('token');
-  if (!token) {
+  const { isAuthenticated, token } = useAuth();
+
+  if (!isAuthenticated || !token) {
     return <Navigate to="/login" replace />;
   }
-  // Check JWT expiration
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    if (payload.exp) {
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp < now) {
-        localStorage.removeItem('token');
-        return <Navigate to="/login" replace />;
-      }
-    }
-  } catch {
-    localStorage.removeItem('token');
-    return <Navigate to="/login" replace />;
-  }
+
   return children;
 }
 
 function AppContent() {
-  const token = localStorage.getItem('token');
-  const isAuthenticated = !!token;
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   // Hide navbar on auth pages (login, register, forgot-password, reset-password)
@@ -43,6 +32,7 @@ function AppContent() {
   return (
     <div>
       {shouldShowNavbar && <Navbar />}
+      <TokenExpirationModal />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -60,9 +50,11 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 

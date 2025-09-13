@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, TextField, Select, MenuItem, Button, Paper, InputLabel, FormControl } from '@mui/material';
+import { Box, TextField, Select, MenuItem, Button, Paper, InputLabel, FormControl, Alert } from '@mui/material';
+import { useAuth } from '../../contexts/AuthContext';
+import { userPermissions } from '../../utils/jwtUtils';
 
 interface TransactionFormProps {
   transaction?: {
@@ -30,6 +32,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [file, setFile] = useState<File | null>(null);
+
+  // Get auth context and permissions
+  const { user } = useAuth();
+  const canWriteTransactions = userPermissions.canWrite(user?.role);
+  const isObserver = userPermissions.isObserver(user?.role);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -124,6 +131,20 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
 
   return (
     <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
+      {/* Show read-only message for Observer users */}
+      {isObserver && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          You have read-only access. This form is disabled.
+        </Alert>
+      )}
+      
+      {/* Show permission warning for users who cannot write */}
+      {!canWriteTransactions && !isObserver && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to create or modify transactions.
+        </Alert>
+      )}
+      
       <form onSubmit={handleSubmit}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
           <TextField
@@ -133,6 +154,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
             required
             size="small"
             sx={{ minWidth: 120, maxWidth: 200 }}
+            disabled={!canWriteTransactions}
+            InputProps={{
+              readOnly: !canWriteTransactions,
+            }}
           />
           <TextField
             label="Amount"
@@ -142,14 +167,19 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
             required
             size="small"
             sx={{ minWidth: 120, maxWidth: 200 }}
+            disabled={!canWriteTransactions}
+            InputProps={{
+              readOnly: !canWriteTransactions,
+            }}
           />
-          <FormControl size="small" sx={{ minWidth: 120, maxWidth: 200 }}>
+          <FormControl size="small" sx={{ minWidth: 120, maxWidth: 200 }} disabled={!canWriteTransactions}>
             <InputLabel>Category</InputLabel>
             <Select
               value={categoryId}
               label="Category"
               onChange={e => setCategoryId(Number(e.target.value))}
               required
+              readOnly={!canWriteTransactions}
             >
               <MenuItem value="">Select Category</MenuItem>
               {categories.map(cat => (
@@ -166,14 +196,19 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
             size="small"
             InputLabelProps={{ shrink: true }}
             sx={{ minWidth: 120, maxWidth: 200 }}
+            disabled={!canWriteTransactions}
+            InputProps={{
+              readOnly: !canWriteTransactions,
+            }}
           />
-          <FormControl size="small" sx={{ minWidth: 120, maxWidth: 200 }}>
+          <FormControl size="small" sx={{ minWidth: 120, maxWidth: 200 }} disabled={!canWriteTransactions}>
             <InputLabel>Type</InputLabel>
             <Select
               value={type}
               label="Type"
               onChange={e => setType(e.target.value as 'Credit' | 'Debit')}
               required
+              readOnly={!canWriteTransactions}
             >
               <MenuItem value="Debit">Debit</MenuItem>
               <MenuItem value="Credit">Credit</MenuItem>
@@ -185,6 +220,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
             color="primary"
             size="medium"
             sx={{ minWidth: 120, maxWidth: 200 }}
+            disabled={!canWriteTransactions}
           >
             {file ? file.name : 'Upload File'}
             <input
@@ -203,6 +239,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
                   }
                 }
               }}
+              disabled={!canWriteTransactions}
             />
           </Button>
           <Button
@@ -210,7 +247,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
             variant="contained"
             color="success"
             size="medium"
-            disabled={loading}
+            disabled={loading || !canWriteTransactions}
             sx={{ minWidth: 120, maxWidth: 200 }}
           >
             {loading ? 'Saving...' : transaction ? 'Update' : 'Add Expense'}
