@@ -190,9 +190,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
             <input
               type="file"
               hidden
+              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,.xls,.xlsx"
               onChange={e => {
                 if (e.target.files && e.target.files[0]) {
-                  setFile(e.target.files[0]);
+                  const allowedExts = ["jpg","jpeg","png","gif","bmp","webp","pdf","xls","xlsx"];
+                  const fileObj = e.target.files[0];
+                  const ext = fileObj.name.split('.').pop()?.toLowerCase();
+                  if (ext && allowedExts.includes(ext)) {
+                    setFile(fileObj);
+                  } else {
+                    setError('Invalid file type. Only images, PDF, and Excel files are allowed.');
+                  }
                 }
               }}
             />

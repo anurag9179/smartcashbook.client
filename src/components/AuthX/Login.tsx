@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Paper, Box, Typography, TextField, Button } from '@mui/material';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // username or email
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post('/api/User/login', { email, password });
+  const response = await axios.post('/api/Auth/login', { identifier, password });
       localStorage.setItem('token', (response.data as any).token);
       navigate('/dashboard');
     } catch (err: any) {
@@ -29,10 +29,9 @@ const Login: React.FC = () => {
         </Typography>
         <form onSubmit={handleSubmit}>
           <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+            label="Username or Email"
+            value={identifier}
+            onChange={e => setIdentifier(e.target.value)}
             required
             fullWidth
             sx={{ mb: 2 }}
