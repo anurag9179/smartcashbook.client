@@ -5,15 +5,11 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProviderWrapper } from './contexts/ThemeContext';
+import { ThemeProviderWrapper, ThemeContext } from './contexts/ThemeContext';
 
 // Theme component that provides theme switching
 function AppThemeProvider({ children }) {
-  const [darkMode, setDarkMode] = React.useState(() => {
-    // Get theme preference from localStorage or default to light
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark';
-  });
+  const { darkMode } = React.useContext(ThemeContext);
 
   const theme = React.useMemo(
     () =>
@@ -52,33 +48,52 @@ function AppThemeProvider({ children }) {
               },
             },
           },
+          MuiTableHead: {
+            styleOverrides: {
+              root: {
+                backgroundColor: 'transparent !important',
+                '& .MuiTableRow-root': {
+                  backgroundColor: 'transparent !important',
+                },
+                '& tr': {
+                  backgroundColor: 'transparent !important',
+                },
+              },
+            },
+          },
+          MuiTableRow: {
+            styleOverrides: {
+              root: {
+                '&.MuiTableRow-head': {
+                  backgroundColor: 'transparent !important',
+                  '&:hover': {
+                    backgroundColor: 'transparent !important',
+                  },
+                },
+              },
+            },
+          },
         },
       }),
     [darkMode]
   );
 
-  const toggleTheme = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
-  };
-
   return (
-    <ThemeProviderWrapper>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </ThemeProvider>
-    </ThemeProviderWrapper>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </ThemeProvider>
   );
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <AppThemeProvider>
-      <App />
-    </AppThemeProvider>
+    <ThemeProviderWrapper>
+      <AppThemeProvider>
+        <App />
+      </AppThemeProvider>
+    </ThemeProviderWrapper>
   </React.StrictMode>
 );
 

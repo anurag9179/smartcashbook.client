@@ -101,10 +101,22 @@ const Dashboard: React.FC = () => {
       const transactionsData = transactionsResponse.data as Transaction[];
       const categoriesData = categoriesResponse.data as Category[];
 
-      setTransactions(transactionsData);
+      // Create a category lookup map for joining
+      const categoryMap = new Map<number, string>();
+      categoriesData.forEach(category => {
+        categoryMap.set(category.categoryId, category.name);
+      });
+
+      // Join transactions with category names
+      const transactionsWithCategories = transactionsData.map(transaction => ({
+        ...transaction,
+        categoryName: transaction.categoryId ? categoryMap.get(transaction.categoryId) : undefined
+      }));
+
+      setTransactions(transactionsWithCategories);
 
       // Calculate dashboard metrics
-      const calculatedMetrics = calculateMetrics(transactionsData, categoriesData);
+      const calculatedMetrics = calculateMetrics(transactionsWithCategories, categoriesData);
       setMetrics(calculatedMetrics);
 
     } catch (err: any) {
@@ -597,7 +609,7 @@ const Dashboard: React.FC = () => {
             }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                  <TableRow>
                     <TableCell sx={{
                       fontWeight: 'bold',
                       fontSize: { xs: '0.6rem', sm: '0.7rem' },

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import TransactionForm from './TransactionForm';
 import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Box, Typography, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { ThemeContext } from '../../contexts/ThemeContext';
 
 interface Transaction {
   transactionId: number;
@@ -26,6 +27,9 @@ const TransactionList: React.FC = () => {
   const [previewType, setPreviewType] = useState<'image' | 'pdf' | 'other' | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [previewName, setPreviewName] = useState<string>('');
+
+  // Get theme context
+  const { darkMode } = React.useContext(ThemeContext);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -138,7 +142,7 @@ const TransactionList: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 3 }}>
-      <Typography variant="h5" sx={{ mb: 2, fontWeight: 700, color: '#1976d2', textAlign: 'left' }}>
+      <Typography variant="h5" sx={{ mb: 2, fontWeight: 700, color: 'primary.main', textAlign: 'left' }}>
         Expense Tracker
       </Typography>
       <TransactionForm
@@ -148,27 +152,27 @@ const TransactionList: React.FC = () => {
           fetchTransactions();
         }}
       />
-      <Paper elevation={2} sx={{ mb: 3 }}>
+      <Paper elevation={2} sx={{ mb: 3, backgroundColor: 'background.paper' }}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Expense Name</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Download</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Preview</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Expense Name</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Amount</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Category</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Download</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Preview</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredTransactions.map(tx => (
-              <TableRow key={tx.transactionId}>
-                <TableCell>{tx.description}</TableCell>
-                <TableCell>{formatCurrency(tx.amount)}</TableCell>
-                <TableCell>{categories.find(cat => cat.categoryId === tx.categoryId)?.name || '-'}</TableCell>
-                <TableCell>{tx.date}</TableCell>
-                <TableCell>
+              <TableRow key={tx.transactionId} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
+                <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{tx.description}</TableCell>
+                <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{formatCurrency(tx.amount)}</TableCell>
+                <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{categories.find(cat => cat.categoryId === tx.categoryId)?.name || '-'}</TableCell>
+                <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{tx.date}</TableCell>
+                <TableCell sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                   {tx.filePath ? (
                     <Button
                       variant="outlined"
@@ -179,10 +183,10 @@ const TransactionList: React.FC = () => {
                       Download
                     </Button>
                   ) : (
-                    <span style={{ color: '#aaa' }}>No file</span>
+                    <span style={{ color: 'text.secondary' }}>No file</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                   {tx.filePath ? (
                     <Button
                       variant="outlined"
@@ -196,7 +200,7 @@ const TransactionList: React.FC = () => {
                     <span style={{ color: '#aaa' }}>No file</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
                   <Button variant="outlined" color="primary" size="small" sx={{ mr: 1 }} onClick={() => setEditTransaction(tx)}>Edit</Button>
                   <Button variant="outlined" color="error" size="small" onClick={() => handleDelete(tx.transactionId)}>Delete</Button>
                 </TableCell>
@@ -206,7 +210,7 @@ const TransactionList: React.FC = () => {
         </Table>
       </Paper>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#388e3c' }}>Total: {formatCurrency(total)}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'success.main' }}>Total: {formatCurrency(total)}</Typography>
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel>Filter by Category</InputLabel>
           <Select
@@ -224,7 +228,7 @@ const TransactionList: React.FC = () => {
       {/* Preview Modal */}
       {previewOpen && (
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ bgcolor: '#fff', p: 3, borderRadius: 2, minWidth: 320, minHeight: 200, maxWidth: '90vw', maxHeight: '90vh', position: 'relative' }}>
+          <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2, minWidth: 320, minHeight: 200, maxWidth: '90vw', maxHeight: '90vh', position: 'relative' }}>
             <Button onClick={() => { setPreviewOpen(false); window.URL.revokeObjectURL(previewUrl); }} sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>X</Button>
             <Typography variant="h6" sx={{ mb: 2 }}>{previewName}</Typography>
             {previewType === 'image' && (
