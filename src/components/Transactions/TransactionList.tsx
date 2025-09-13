@@ -27,6 +27,13 @@ const TransactionList: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [previewName, setPreviewName] = useState<string>('');
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
+
   // File preview handler
   const handlePreview = async (transactionId: number, filePath?: string) => {
     const token = localStorage.getItem('token');
@@ -158,7 +165,7 @@ const TransactionList: React.FC = () => {
             {filteredTransactions.map(tx => (
               <TableRow key={tx.transactionId}>
                 <TableCell>{tx.description}</TableCell>
-                <TableCell>${Number(tx.amount).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(tx.amount)}</TableCell>
                 <TableCell>{categories.find(cat => cat.categoryId === tx.categoryId)?.name || '-'}</TableCell>
                 <TableCell>{tx.date}</TableCell>
                 <TableCell>
@@ -199,7 +206,7 @@ const TransactionList: React.FC = () => {
         </Table>
       </Paper>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#388e3c' }}>Total: ${total.toFixed(2)}</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#388e3c' }}>Total: {formatCurrency(total)}</Typography>
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel>Filter by Category</InputLabel>
           <Select
