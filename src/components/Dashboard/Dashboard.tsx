@@ -14,7 +14,12 @@ import {
   TableRow,
   Chip,
   CircularProgress,
-  Alert
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Paper
 } from '@mui/material';
 import {
   TrendingUp,
@@ -76,12 +81,39 @@ interface DashboardMetrics {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF7C7C'];
 
+const formatDate = (date: Date | string) => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toISOString().slice(0, 10);
+};
+
+const getDateRange = (type: 'daily' | 'weekly' | 'monthly') => {
+  const today = new Date();
+  if (type === 'daily') {
+    const start = formatDate(today);
+    const end = formatDate(today);
+    return { startDate: start, endDate: end };
+  }
+  if (type === 'weekly') {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+    return { startDate: formatDate(weekStart), endDate: formatDate(weekEnd) };
+  }
+  // monthly
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  return { startDate: formatDate(monthStart), endDate: formatDate(monthEnd) };
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [reportData, setReportData] = useState<any[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -129,6 +161,27 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    const fetchReport = async () => {
+      setLoading(true);
+      const { startDate, endDate } = getDateRange(reportType);
+      const token = localStorage.getItem('token');
+      try {
+        const response = await axios.get('/api/Transaction', {
+          params: { startDate, endDate },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = response.data as { items?: Transaction[] } | Transaction[];
+        setReportData(Array.isArray(data) ? data : data.items || []); // support both paginated and array response
+      } catch (err) {
+        setReportData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReport();
+  }, [reportType]);
 
   const calculateMetrics = (transactions: Transaction[], categories: Category[]): DashboardMetrics => {
     const currentMonth = new Date().getMonth();
@@ -201,14 +254,6 @@ const Dashboard: React.FC = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
   const handleAddTransaction = () => {
     navigate('/transactions');
   };
@@ -265,6 +310,50 @@ const Dashboard: React.FC = () => {
   const recentTransactions = transactions
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
+
+  const totalAmount = reportData.reduce((sum, tx) => sum + Number(tx.amount), 0);
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const getExpenseSum = (start: Date, end: Date) =>
+    transactions
+      .filter(tx =>
+        tx.type === 'Debit' &&
+        new Date(tx.date) >= start &&
+        new Date(tx.date) <= end
+      )
+      .reduce((sum, tx) => sum + Number(tx.amount), 0);
+
+  const todayExpense = getExpenseSum(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+    new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
+  );
+
+  const yesterdayExpense = getExpenseSum(
+    new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()),
+    new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59)
+  );
+
+  const last7DaysExpense = getExpenseSum(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6),
+    today
+  );
+
+  const last30DaysExpense = getExpenseSum(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29),
+    today
+  );
+
+  const currentYearExpense = getExpenseSum(
+    new Date(today.getFullYear(), 0, 1),
+    today
+  );
+
+  const totalExpense = transactions
+    .filter(tx => tx.type === 'Debit')
+    .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
   return (
     <Box sx={{ flexGrow: 1, p: { xs: 0.5, sm: 1, md: 1.5 } }}>
@@ -454,6 +543,34 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </Box>
+
+      {/* Report Type Selection - Already Present */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Report Type</InputLabel>
+          <Select
+            value={reportType}
+            onChange={e => setReportType(e.target.value as any)}
+          >
+            <MenuItem value="daily">Daily</MenuItem>
+            <MenuItem value="weekly">Weekly</MenuItem>
+            <MenuItem value="monthly">Monthly</MenuItem>
+          </Select>
+        </FormControl>
+      </Paper>
+
+      {/* Add this block to show the report summary */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
+        </Typography>
+        <Typography>
+          Total Transactions: {reportData.length}
+        </Typography>
+        <Typography>
+          Total Amount: ₹{reportData.reduce((sum, tx) => sum + Number(tx.amount), 0).toLocaleString('en-IN')}
+        </Typography>
+      </Paper>
 
       {/* Charts Section - Responsive */}
       <Box sx={{
@@ -661,7 +778,7 @@ const Dashboard: React.FC = () => {
                         py: { xs: 0.25, sm: 0.5 },
                         px: { xs: 0.25, sm: 0.5 }
                       }}>
-                        {formatDate(transaction.date)}
+                        {formatDate(new Date(transaction.date))}
                       </TableCell>
                       <TableCell sx={{
                         fontSize: { xs: '0.6rem', sm: '0.7rem' },
@@ -839,6 +956,39 @@ const Dashboard: React.FC = () => {
               </Box>
             </Box>
           </CardContent>
+        </Card>
+      </Box>
+
+      {/* New Expense Summary Section */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' },
+        gap: 2,
+        mb: 3
+      }}>
+        <Card sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="subtitle2">Today's Expense</Typography>
+          <Typography variant="h5" color="primary">{todayExpense}</Typography>
+        </Card>
+        <Card sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="subtitle2">Yesterday's Expense</Typography>
+          <Typography variant="h5" color="orange">{yesterdayExpense}</Typography>
+        </Card>
+        <Card sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="subtitle2">Last 7 Days Expense</Typography>
+          <Typography variant="h5" color="teal">{last7DaysExpense}</Typography>
+        </Card>
+        <Card sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="subtitle2">Last 30 Days Expense</Typography>
+          <Typography variant="h5" color="red">{last30DaysExpense}</Typography>
+        </Card>
+        <Card sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="subtitle2">Current Year Expenses</Typography>
+          <Typography variant="h5" color="red">{currentYearExpense}</Typography>
+        </Card>
+        <Card sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="subtitle2">Total Expenses</Typography>
+          <Typography variant="h5" color="red">{totalExpense}</Typography>
         </Card>
       </Box>
     </Box>
