@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Box, Paper, Typography, TextField, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Paper, Typography, TextField, Button } from '@mui/material';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +22,12 @@ const Register: React.FC = () => {
       return;
     }
     try {
-      await axios.post('/api/Auth/signup', { userName: username, email, password });
+      await axios.post('/api/Auth/signup', {
+        userName: username,
+        email,
+        password,
+        role: 'Observer' // Set default role here
+      });
       navigate('/'); // Redirect to landing page after successful registration
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
@@ -71,7 +76,6 @@ const Register: React.FC = () => {
             fullWidth
             sx={{ mb: 2 }}
           />
-          {/* Role selection removed. Role will be assigned by backend. */}
           {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
           {success && <Typography color="primary" sx={{ mb: 2 }}>{success}</Typography>}
           <Button type="submit" variant="contained" color="primary" fullWidth sx={{ py: 1, fontWeight: 600 }}>

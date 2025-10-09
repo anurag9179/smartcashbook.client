@@ -44,6 +44,9 @@ import {
   Area,
   AreaChart
 } from 'recharts';
+import dayjs from 'dayjs';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
+dayjs.extend(weekOfYear);
 
 interface Transaction {
   transactionId: number;
@@ -113,7 +116,9 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [reportData, setReportData] = useState<any[]>([]);
+  const [reportData, setReportData] = useState<Transaction[]>([]);
+  const [chartData, setChartData] = useState<{ label: string; value: number }[]>([]);
+  const [trendChartData, setTrendChartData] = useState<{ label: string; income: number; expenses: number }[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -122,7 +127,7 @@ const Dashboard: React.FC = () => {
 
       // Fetch transactions and categories in parallel
       const [transactionsResponse, categoriesResponse] = await Promise.all([
-        axios.get('/api/Transaction', {
+        axios.get('/api/Transaction/all-records', {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get('/api/Category', {
@@ -160,7 +165,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -168,12 +173,12 @@ const Dashboard: React.FC = () => {
       const { startDate, endDate } = getDateRange(reportType);
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('/api/Transaction', {
+        const response = await axios.get('/api/Transaction/all-records', {
           params: { startDate, endDate },
           headers: { Authorization: `Bearer ${token}` }
         });
-        const data = response.data as { items?: Transaction[] } | Transaction[];
-        setReportData(Array.isArray(data) ? data : data.items || []); // support both paginated and array response
+        const data = response.data as Transaction[];
+        setReportData(Array.isArray(data) ? data : []);
       } catch (err) {
         setReportData([]);
       } finally {
@@ -182,6 +187,11 @@ const Dashboard: React.FC = () => {
     };
     fetchReport();
   }, [reportType]);
+
+  useEffect(() => {
+    setChartData(groupTransactions(transactions, reportType));
+    setTrendChartData(groupIncomeExpenses(transactions, reportType));
+  }, [transactions, reportType]);
 
   const calculateMetrics = (transactions: Transaction[], categories: Category[]): DashboardMetrics => {
     const currentMonth = new Date().getMonth();
@@ -259,14 +269,13 @@ const Dashboard: React.FC = () => {
   };
 
   const handleViewReports = () => {
-    // For now, navigate to transactions page - can be enhanced later with dedicated reports
     navigate('/transactions');
   };
 
   const handleExportData = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.get('/api/Transaction', {
+      await axios.get('/api/Transaction/all-records', {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -550,7 +559,7 @@ const Dashboard: React.FC = () => {
           <InputLabel>Report Type</InputLabel>
           <Select
             value={reportType}
-            onChange={e => setReportType(e.target.value as any)}
+            onChange={e => setReportType(e.target.value as 'daily' | 'weekly' | 'monthly')}
           >
             <MenuItem value="daily">Daily</MenuItem>
             <MenuItem value="weekly">Weekly</MenuItem>
@@ -560,7 +569,7 @@ const Dashboard: React.FC = () => {
       </Paper>
 
       {/* Add this block to show the report summary */}
-      <Paper sx={{ p: 2, mb: 2 }}>
+      {/* <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>
           {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
         </Typography>
@@ -570,7 +579,7 @@ const Dashboard: React.FC = () => {
         <Typography>
           Total Amount: ₹{reportData.reduce((sum, tx) => sum + Number(tx.amount), 0).toLocaleString('en-IN')}
         </Typography>
-      </Paper>
+      </Paper> */}
 
       {/* Charts Section - Responsive */}
       <Box sx={{
@@ -991,8 +1000,82 @@ const Dashboard: React.FC = () => {
           <Typography variant="h5" color="red">{totalExpense}</Typography>
         </Card>
       </Box>
+
+      {/* YourChartComponent - New Addition */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            📈 Transaction Trends
+          </Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={trendChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" />
+              <YAxis />
+              <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+              <Bar dataKey="income" fill="#4caf50" />
+              <Bar dataKey="expenses" fill="#f44336" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </Box>
   );
 };
 
 export default Dashboard;
+
+function groupTransactions(
+  transactions: Transaction[],
+  reportType: 'daily' | 'weekly' | 'monthly'
+): { label: string; value: number }[] {
+  const groups: { [key: string]: number } = {};
+
+  transactions.forEach((tx) => {
+    let key = '';
+    if (reportType === 'daily') {
+      key = dayjs(tx.date).format('YYYY-MM-DD');
+    } else if (reportType === 'weekly') {
+      const week = dayjs(tx.date).week();
+      const year = dayjs(tx.date).year();
+      key = `Week ${week}, ${year}`;
+    } else if (reportType === 'monthly') {
+      key = dayjs(tx.date).format('MMM YYYY');
+    }
+    if (!groups[key]) groups[key] = 0;
+    groups[key] += Number(tx.amount);
+  });
+
+  return Object.entries(groups).map(([label, value]) => ({ label, value }));
+}
+
+function groupIncomeExpenses(
+  transactions: Transaction[],
+  reportType: 'daily' | 'weekly' | 'monthly'
+): { label: string; income: number; expenses: number }[] {
+  const groups: { [key: string]: { income: number; expenses: number } } = {};
+
+  transactions.forEach((tx) => {
+    let key = '';
+    if (reportType === 'daily') {
+      key = dayjs(tx.date).format('YYYY-MM-DD');
+    } else if (reportType === 'weekly') {
+      const week = dayjs(tx.date).week();
+      const year = dayjs(tx.date).year();
+      key = `Week ${week}, ${year}`;
+    } else if (reportType === 'monthly') {
+      key = dayjs(tx.date).format('MMM YYYY');
+    }
+    if (!groups[key]) groups[key] = { income: 0, expenses: 0 };
+    if (tx.type === 'Credit') {
+      groups[key].income += Number(tx.amount);
+    } else if (tx.type === 'Debit') {
+      groups[key].expenses += Number(tx.amount);
+    }
+  });
+
+  // Sort by label (date order)
+  return Object.entries(groups)
+    .map(([label, value]) => ({ label, ...value }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}

@@ -189,7 +189,7 @@ const UserList: React.FC = () => {
               autoComplete="off"
             />
             <TextField
-              label="Password (optional)"
+              label="Password"
               name="password"
               type="password"
               value={form.password}
@@ -197,6 +197,7 @@ const UserList: React.FC = () => {
               size="small"
               sx={{ minWidth: 120, maxWidth: 200 }}
               autoComplete="new-password"
+              required
             />
             <TextField
               select

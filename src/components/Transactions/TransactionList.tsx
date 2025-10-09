@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import TransactionForm from './TransactionForm';
-import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Box, Typography, Button, Select, MenuItem, FormControl, InputLabel, Alert, TextField } from '@mui/material';
+import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Box, Typography, Button, Select, MenuItem, FormControl, InputLabel, Alert, TextField, Pagination } from '@mui/material';
 import { ThemeContext } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { userPermissions } from '../../utils/jwtUtils';
@@ -11,7 +11,6 @@ import DownloadIcon from '@mui/icons-material/Download';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-
 
 interface Transaction {
   transactionId: number;
@@ -30,7 +29,6 @@ interface Category {
   type: string;
 }
 
-// Add this interface at the top of your file:
 interface ApiResponse {
   items: Transaction[];
   totalCount: number;
@@ -83,6 +81,7 @@ const TransactionList: React.FC = () => {
       alert(err.response?.data?.message || 'Failed to preview file');
     }
   };
+
   // Download file with JWT
   const handleDownload = async (transactionId: number, fileName?: string) => {
     const token = localStorage.getItem('token');
@@ -104,6 +103,7 @@ const TransactionList: React.FC = () => {
       alert(err.response?.data?.message || 'Failed to download file');
     }
   };
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,28 +119,24 @@ const TransactionList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(10); // Match backend default
 
   const fetchTransactions = async () => {
+    setLoading(true);
     const params = new URLSearchParams();
     if (filters.categoryId) params.append('categoryId', filters.categoryId);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
     if (filters.paymentMode) params.append('paymentMode', filters.paymentMode);
     params.append('page', currentPage.toString());
-    params.append('pageSize', '20');
+    params.append('pageSize', pageSize.toString());
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get('/api/Transaction', { params, headers: { Authorization: `Bearer ${token}` } });
-      const data = response.data as ApiResponse | Transaction[];
-      if (Array.isArray(data)) {
-        setTransactions(data);
-        setTotalCount(data.length);
-        setTotalPages(1);
-      } else {
-        setTransactions(data.items || []);
-        setTotalCount(data.totalCount || 0);
-        setTotalPages(data.totalPages || 1);
-      }
+      const data = response.data as ApiResponse;
+      setTransactions(data.items || []);
+      setTotalCount(data.totalCount || 0);
+      setTotalPages(data.totalPages || 1);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch transactions');
     } finally {
@@ -165,6 +161,10 @@ const TransactionList: React.FC = () => {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    fetchTransactions();
+  }, [currentPage, pageSize]);
+
   const handleDelete = async (transactionId: number) => {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
@@ -182,31 +182,29 @@ const TransactionList: React.FC = () => {
     ? transactions
     : transactions.filter(tx => tx.categoryId === Number(filterCategory));
 
-  const total = filteredTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
-
   const totalExpense = filteredTransactions
-  .filter(tx => tx.type === 'Debit')
-  .reduce((sum, tx) => sum + Number(tx.amount), 0);
+    .filter(tx => tx.type === 'Debit')
+    .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
-const totalIncome = filteredTransactions
-  .filter(tx => tx.type === 'Credit')
-  .reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const totalIncome = filteredTransactions
+    .filter(tx => tx.type === 'Credit')
+    .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
-const netTotal = totalIncome - totalExpense;
+  const netTotal = totalIncome - totalExpense;
 
   if (loading) return <div>Loading transactions...</div>;
   if (error) return <div className="error">{error}</div>;
 
   const handleClearFilters = () => {
-  setFilters({
-    categoryId: '',
-    startDate: '',
-    endDate: '',
-    paymentMode: ''
-  });
-  setCurrentPage(1);
-  fetchTransactions();
-};
+    setFilters({
+      categoryId: '',
+      startDate: '',
+      endDate: '',
+      paymentMode: ''
+    });
+    setCurrentPage(1);
+    fetchTransactions();
+  };
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 3 }}>
@@ -228,80 +226,95 @@ const netTotal = totalIncome - totalExpense;
 
       {/* Filter controls - visually grouped and aligned */}
       <Box sx={{
-  mb: 3,
-  p: 2,
-  backgroundColor: 'background.paper',
-  borderRadius: 2,
-  boxShadow: 1,
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: 2,
-  alignItems: 'center'
-}}>
-  <FormControl size="small" fullWidth sx={{ minWidth: 150, maxWidth: 200 }}>
-    <InputLabel>Category</InputLabel>
-    <Select
-      value={filters.categoryId}
-      onChange={e => setFilters(f => ({ ...f, categoryId: e.target.value }))}
-      label="Category"
-    >
-      <MenuItem value="">All</MenuItem>
-      {categories.map(cat => (
-        <MenuItem key={cat.categoryId} value={cat.categoryId}>{cat.name}</MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-  <TextField
-    label="Start Date"
-    type="date"
-    value={filters.startDate}
-    onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
-    InputLabelProps={{ shrink: true }}
-    size="small"
-    fullWidth
-    sx={{ minWidth: 150, maxWidth: 200 }}
-  />
-  <TextField
-    label="End Date"
-    type="date"
-    value={filters.endDate}
-    onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
-    InputLabelProps={{ shrink: true }}
-    size="small"
-    fullWidth
-    sx={{ minWidth: 150, maxWidth: 200 }}
-  />
-  <FormControl size="small" fullWidth sx={{ minWidth: 150, maxWidth: 200 }}>
-    <InputLabel>Payment Mode</InputLabel>
-    <Select
-      value={filters.paymentMode}
-      onChange={e => setFilters(f => ({ ...f, paymentMode: e.target.value }))}
-      label="Payment Mode"
-    >
-      <MenuItem value="">All</MenuItem>
-      <MenuItem value="Cash">Cash</MenuItem>
-      <MenuItem value="Card">Card</MenuItem>
-      <MenuItem value="Bank Transfer">Bank Transfer</MenuItem>
-      <MenuItem value="UPI">UPI</MenuItem>
-      <MenuItem value="Cheque">Cheque</MenuItem>
-      <MenuItem value="Other">Other</MenuItem>
-    </Select>
-  </FormControl>
-  <Button
-    variant="outlined"
-    onClick={handleClearFilters}
-    sx={{ minWidth: 120, height: 40 }}
-  >
-    Clear Filters
-  </Button>
-  <Button
-    variant="contained"
-    onClick={() => fetchTransactions()}
-    sx={{ minWidth: 120, height: 40 }}
-  >
-    Apply Filters
-  </Button>
-</Box>
+        mb: 3,
+        p: 2,
+        backgroundColor: 'background.paper',
+        borderRadius: 2,
+        boxShadow: 1,
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 2,
+        alignItems: 'center'
+      }}>
+        <FormControl size="small" fullWidth sx={{ minWidth: 150, maxWidth: 200 }}>
+          <InputLabel>Category</InputLabel>
+          <Select
+            value={filters.categoryId}
+            onChange={e => setFilters(f => ({ ...f, categoryId: e.target.value }))}
+            label="Category"
+          >
+            <MenuItem value="">All</MenuItem>
+            {categories.map(cat => (
+              <MenuItem key={cat.categoryId} value={cat.categoryId}>{cat.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Start Date"
+          type="date"
+          value={filters.startDate}
+          onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
+          InputLabelProps={{ shrink: true }}
+          size="small"
+          fullWidth
+          sx={{ minWidth: 150, maxWidth: 200 }}
+        />
+        <TextField
+          label="End Date"
+          type="date"
+          value={filters.endDate}
+          onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
+          InputLabelProps={{ shrink: true }}
+          size="small"
+          fullWidth
+          sx={{ minWidth: 150, maxWidth: 200 }}
+        />
+        <FormControl size="small" fullWidth sx={{ minWidth: 150, maxWidth: 200 }}>
+          <InputLabel>Payment Mode</InputLabel>
+          <Select
+            value={filters.paymentMode}
+            onChange={e => setFilters(f => ({ ...f, paymentMode: e.target.value }))}
+            label="Payment Mode"
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Cash">Cash</MenuItem>
+            <MenuItem value="Card">Card</MenuItem>
+            <MenuItem value="Bank Transfer">Bank Transfer</MenuItem>
+            <MenuItem value="UPI">UPI</MenuItem>
+            <MenuItem value="Cheque">Cheque</MenuItem>
+            <MenuItem value="Other">Other</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 100 }}>
+          <InputLabel>Rows</InputLabel>
+          <Select
+            value={pageSize}
+            onChange={e => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            label="Rows"
+          >
+            {[5, 10, 20, 50].map(size => (
+              <MenuItem key={size} value={size}>{size}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button
+          variant="outlined"
+          onClick={handleClearFilters}
+          sx={{ minWidth: 120, height: 40 }}
+        >
+          Clear Filters
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => fetchTransactions()}
+          sx={{ minWidth: 120, height: 40 }}
+        >
+          Apply Filters
+        </Button>
+      </Box>
 
       {/* Transaction form - for adding/editing transactions */}
       {canWriteTransactions && (
@@ -387,17 +400,17 @@ const netTotal = totalIncome - totalExpense;
               <TableRow key={tx.transactionId} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
                 <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{tx.description}</TableCell>
                 <TableCell
-  align="center"
-  sx={{
-    color: tx.type === 'Credit' ? 'success.main' : 'error.main',
-    fontWeight: 600,
-    borderBottom: '1px solid',
-    borderBottomColor: 'divider'
-  }}
->
-  {tx.type === 'Credit' ? '+' : '-'}
-  {formatCurrency(tx.amount)}
-</TableCell>
+                  align="center"
+                  sx={{
+                    color: tx.type === 'Credit' ? 'success.main' : 'error.main',
+                    fontWeight: 600,
+                    borderBottom: '1px solid',
+                    borderBottomColor: 'divider'
+                  }}
+                >
+                  {tx.type === 'Credit' ? '+' : '-'}
+                  {formatCurrency(tx.amount)}
+                </TableCell>
                 <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{categories.find(cat => cat.categoryId === tx.categoryId)?.name || '-'}</TableCell>
                 <TableCell sx={{ color: 'text.primary', borderBottom: '1px solid', borderBottomColor: 'divider' }}>{tx.date}</TableCell>
                 <TableCell align="center" sx={{ borderBottom: '1px solid', borderBottomColor: 'divider' }}>
@@ -450,6 +463,19 @@ const netTotal = totalIncome - totalExpense;
           </TableBody>
         </Table>
       </Paper>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={(e, value) => setCurrentPage(value)}
+            color="primary"
+            size="large"
+          />
+        </Box>
+      )}
 
       {/* Preview Modal */}
       {previewOpen && (
@@ -509,7 +535,6 @@ const netTotal = totalIncome - totalExpense;
           </Box>
         </Box>
       )}
-      {/* ...rest of code (pagination, etc.)... */}
     </Box>
   );
 };

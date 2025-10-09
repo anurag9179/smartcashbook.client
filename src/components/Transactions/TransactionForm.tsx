@@ -32,6 +32,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [filePath, setFilePath] = useState<string>('');
 
   // Get auth context and permissions
   const { user } = useAuth();
@@ -60,12 +61,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
       setDate(transaction.date || '');
       setType(transaction.type || 'Debit');
       setCategoryId(transaction.categoryId || '');
+      setFilePath((transaction as any).filePath || ''); // Add this line
     } else {
       setDescription('');
       setAmount('');
       setDate('');
       setType('Debit');
       setCategoryId('');
+      setFilePath(''); // Add this line
     }
   }, [transaction]);
 
@@ -75,41 +78,31 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
     setError('');
     try {
       const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('description', description);
+      formData.append('amount', String(amount));
+      formData.append('date', date);
+      formData.append('type', type);
+      if (categoryId !== '') formData.append('categoryId', String(categoryId));
+      // Get userId from JWT
+      let userId = '';
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        userId = payload.sub;
+      }
+      formData.append('userId', userId);
+
       if (transaction) {
-        // Update (with file upload)
-        const formData = new FormData();
-        formData.append('description', description);
-        formData.append('amount', String(amount));
-        formData.append('date', date);
-        formData.append('type', type);
-        if (categoryId !== '') formData.append('categoryId', String(categoryId));
         formData.append('transactionId', String(transaction.transactionId));
-        // Get userId from JWT
-        let userId = '';
-        if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          userId = payload.sub;
+        if (file) {
+          formData.append('file', file);
+        } else if (filePath) {
+          formData.append('filePath', filePath); // Preserve existing file
         }
-        formData.append('userId', userId);
-        if (file) formData.append('file', file);
         await axios.put(`/api/Transaction/${transaction.transactionId}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        // Create (with file upload)
-        const formData = new FormData();
-        formData.append('description', description);
-        formData.append('amount', String(amount));
-        formData.append('date', date);
-        formData.append('type', type);
-        if (categoryId !== '') formData.append('categoryId', String(categoryId));
-        // Get userId from JWT
-        let userId = '';
-        if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          userId = payload.sub;
-        }
-        formData.append('userId', userId);
         if (file) formData.append('file', file);
         await axios.post('/api/Transaction', formData, {
           headers: { Authorization: `Bearer ${token}` },
@@ -122,6 +115,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
       setType('Debit');
       setCategoryId('');
       setFile(null);
+      setFilePath('');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save transaction');
     } finally {
@@ -242,6 +236,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSucces
               disabled={!canWriteTransactions}
             />
           </Button>
+          {filePath && !file && (
+            <span style={{ color: '#666', fontSize: 12, marginLeft: 8 }}>
+              Existing file: {filePath.split('\\').pop()}
+            </span>
+          )}
           <Button
             type="submit"
             variant="contained"
